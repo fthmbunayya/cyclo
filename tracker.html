@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CycleSync - Smart Productivity Planner</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #d63384;
+            --secondary: #6f42c1;
+            --light-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-dark: #343a40;
+            --text-light: #6c757d;
+            --success: #20c997;
+            --warning: #fd7e14;
+            --danger: #dc3545;
+            --study: #228be6;
+            --work: #f59f00;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--light-bg);
+            color: var(--text-dark);
+            transition: background 0.8s ease-in-out;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            color: white;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(0,0,0,0.1);
+        }
+
+        h1, h2, h3, h4 {
+            margin-bottom: 1rem;
+            color: var(--text-dark);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.8rem;
+            margin: 0.5rem 0 1rem;
+            border-radius: 10px;
+            border: 1px solid #e9ecef;
+            background: #f8f9fa;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(214, 51, 132, 0.15);
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            padding: 0.8rem 1.2rem;
+            border-radius: 10px;
+            border: none;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background: #b0256a;
+            transform: translateY(-2px);
+        }
+
+        button.secondary {
+            background: #6c757d;
+        }
+
+        button.secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-icon {
+            font-size: 1.2rem;
+        }
+
+        .phase-display {
+            text-align: center;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, rgba(214, 51, 132, 0.1), rgba(111, 66, 193, 0.1));
+        }
+
+        .phase-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .phase-advice {
+            font-style: italic;
+            margin-bottom: 1.5rem;
+            color: var(--text-light);
+        }
+
+        .progress-container {
+            margin: 1.5rem 0;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 1s ease-in-out;
+        }
+
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+        }
+
+        .forecast-day {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .calendar-header {
+            text-align: center;
+            font-weight: 600;
+            padding: 0.5rem;
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .calendar-day {
+            background: var(--card-bg);
+            border-radius: 10px;
+            padding: 0.8rem;
+            min-height: 120px;
+            font-size: 0.9rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border: 1px solid #f1f3f5;
+        }
+
+        .calendar-day.current {
+            border: 2px solid var(--primary);
+            background: rgba(214, 51, 132, 0.05);
+        }
+
+        .day-number {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-dark);
+        }
+
+        .task-entry {
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
+            margin-top: 0.3rem;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .study-entry {
+            background: rgba(34, 139, 230, 0.1);
+            border-left: 3px solid var(--study);
+        }
+
+        .work-entry {
+            background: rgba(245, 159, 0, 0.1);
+            border-left: 3px solid var(--work);
+        }
+
+        .task-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 1rem;
+        }
+
+        .task-item {
+            background: var(--card-bg);
+            padding: 1rem;
+            border-radius: 10px;
+            margin-bottom: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .task-info {
+            flex: 1;
+        }
+
+        .task-title {
+            font-weight: 600;
+            margin-bottom: 0.3rem;
+        }
+
+        .task-meta {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-container {
+            height: 250px;
+            margin-top: 1rem;
+        }
+
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.95);
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .error-message {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .calendar-grid {
+                grid-template-columns: repeat(7, 1fr);
+                overflow-x: auto;
+            }
+            
+            .calendar-day {
+                min-height: 100px;
+                min-width: 40px;
+            }
+       
+        }
+    </style>
+</head>
+<body>
+    
+
+  <div id="mainApp">
+        <div class="header">
+            <h1>🌸 CycleSync 2.0</h1>
+            <p>Phase-Adaptive Productivity Intelligence System</p>
+           
+        </div>
+
+        <div class="container">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><span>📅</span> Cycle Information</h3>
+                    </div>
+                    <label>Last Period Start:</label>
+                    <input type="date" id="lastPeriod">
+                    
+                    <label>Average Cycle Length:</label>
+                    <input type="number" id="cycleLength" placeholder="e.g., 28" min="21" max="35">
+                    
+                                       
+                    <button onclick="calculatePhase()">
+                        <span class="btn-icon">🔍</span> Analyze My Productivity
+                    </button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><span>📊</span> Phase Analysis</h3>
+                    </div>
+                    <div id="resultBox">
+                        <div class="phase-display">
+                            <div class="phase-name" id="phaseName"></div>
+                            <div class="phase-advice" id="advice"></div>
+                            
+                            <div class="progress-container">
+                                <div class="progress-label">
+                                    <span>⚡ Energy</span>
+                                    <span id="energyValue">0/10</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="energyBar" style="width: 0%; background: var(--primary);"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-container">
+                                <div class="progress-label">
+                                    <span>🎯 Focus</span>
+                                    <span id="focusValue">0/10</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="focusBar" style="width: 0%; background: var(--secondary);"></div>
+                                </div>
+                            </div>
+                            
+                            <div id="recommendation" style="margin-top: 1.5rem;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><span>📝</span> Study Tasks</h3>
+                    </div>
+                    <input type="text" id="newTaskInput" placeholder="Task name (e.g., Biology Finals)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label>Deadline:</label>
+                            <input type="date" id="taskDeadline">
+                        </div>
+                        <div>
+                          <label>Priority:</label>
+<select id="taskPriority">
+    <option value="">Select Priority</option>
+    <option value="high">High 🔥</option>
+    <option value="medium">Medium ⚡</option>
+    <option value="low">Low 🌿</option>
+</select>
+                        </div>
+                    </div>
+                    <button onclick="addTask()">
+                        <span class="btn-icon">➕</span> Add Study Task
+                    </button>
+                    <ul id="taskList" class="task-list"></ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><span>💼</span> Work Tasks</h3>
+                    </div>
+                    <input type="text" id="newWorkTaskInput" placeholder="Work task (e.g., Client Report)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div>
+                            <label>Deadline:</label>
+                            <input type="date" id="workTaskDeadline">
+                        </div>
+                        <div>
+                          <label>Priority:</label>
+<select id="workTaskPriority">
+    <option value="">Select Priority</option>
+    <option value="high">High 🔥</option>
+    <option value="medium">Medium ⚡</option>
+    <option value="low">Low 🌿</option>
+</select>
+                        </div>
+                    </div>
+                    <button onclick="addWorkTask()">
+                        <span class="btn-icon">➕</span> Add Work Task
+                    </button>
+                    <ul id="workTaskList" class="task-list"></ul>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h3><span>🔮</span> 7-Day Productivity Forecast</h3>
+                    </div>
+                    <div class="forecast-grid" id="forecast"></div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3><span>📈</span> Energy Trend</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="energyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+               <div class="card-header">
+    <h3><span>📅</span> Smart Study Calendar</h3>
+    <div style="display:flex; align-items:center; gap:1rem;">
+        <button onclick="prevMonth()" class="secondary" style="padding: 0.5rem;">←</button>
+        <strong id="monthYearLabel" style="font-size: 1.1rem;"></strong>
+        <button onclick="nextMonth()" class="secondary" style="padding: 0.5rem;">→</button>
+    </div>
+</div>
+                <div id="calendarHeader" class="calendar-grid">
+                    <div class="calendar-header">Sun</div>
+                    <div class="calendar-header">Mon</div>
+                    <div class="calendar-header">Tue</div>
+                    <div class="calendar-header">Wed</div>
+                    <div class="calendar-header">Thu</div>
+                    <div class="calendar-header">Fri</div>
+                    <div class="calendar-header">Sat</div>
+                </div>
+                <div id="calendar" class="calendar-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        // Global variables
+        let tasks = [];
+        let workTasks = [];
+        let energyChart = null;
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+
+        const phaseProfiles = {
+            Menstrual: { 
+                emoji: "🩸", 
+                energy: 3, 
+                focus: 4, 
+                social: 2, 
+                bestCategory: "Light Work", 
+                avoidCategory: "Communication", 
+                advice: "Your body needs recovery. Prioritize rest and reflection.", 
+                theme: "rgba(241, 243, 245, 0.5)" 
+            },
+            Follicular: { 
+                emoji: "🌱", 
+                energy: 7, 
+                focus: 8, 
+                social: 6, 
+                bestCategory: "Learning", 
+                avoidCategory: "Heavy Deadlines", 
+                advice: "Great time to start new projects and brainstorm ideas.", 
+                theme: "rgba(244, 252, 227, 0.5)" 
+            },
+            Ovulation: { 
+                emoji: "🔥", 
+                energy: 9, 
+                focus: 8, 
+                social: 10, 
+                bestCategory: "Communication", 
+                avoidCategory: "Isolation Work", 
+                advice: "Peak confidence. Ideal for presentations & meetings.", 
+                theme: "rgba(255, 249, 219, 0.5)" 
+            },
+            Luteal: { 
+                emoji: "🌙", 
+                energy: 6, 
+                focus: 9, 
+                social: 5, 
+                bestCategory: "Deep Work", 
+                avoidCategory: "High Social Load", 
+                advice: "Best time to complete pending tasks and focus deeply.", 
+                theme: "rgba(243, 240, 255, 0.5)" 
+            }
+        };
+        // ===== Local Storage Helpers =====
+
+function saveData() {
+    localStorage.setItem("cycleSync_studyTasks", JSON.stringify(tasks));
+    localStorage.setItem("cycleSync_workTasks", JSON.stringify(workTasks));
+    localStorage.setItem("cycleSync_lastPeriod", document.getElementById("lastPeriod").value);
+    localStorage.setItem("cycleSync_cycleLength", document.getElementById("cycleLength").value);
+}
+
+function loadData() {
+    const savedStudy = localStorage.getItem("cycleSync_studyTasks");
+    const savedWork = localStorage.getItem("cycleSync_workTasks");
+
+    if (savedStudy) {
+    tasks = JSON.parse(savedStudy);
+    tasks.forEach(task => {
+        if (task.plan) {
+            task.plan.forEach(p => p.date = new Date(p.date));
+        }
+    });
+}
+
+if (savedWork) {
+    workTasks = JSON.parse(savedWork);
+    workTasks.forEach(task => {
+        if (task.plan) {
+            task.plan.forEach(p => p.date = new Date(p.date));
+        }
+    });
+}
+
+    const savedLastPeriod = localStorage.getItem("cycleSync_lastPeriod");
+    const savedCycleLength = localStorage.getItem("cycleSync_cycleLength");
+
+    if (savedLastPeriod) document.getElementById("lastPeriod").value = savedLastPeriod;
+    if (savedCycleLength) document.getElementById("cycleLength").value = savedCycleLength;
+
+    renderTasks();
+    renderWorkTasks();
+}
+
+        // Initialize the app
+        function initApp() {
+    loadData();
+    generateCalendar();
+}
+
+        
+
+      
+
+      
+       
+
+        
+
+        // Phase calculation
+        function calculatePhase() {
+            const lastPeriodValue = document.getElementById("lastPeriod").value;
+            const cycleLengthValue = document.getElementById("cycleLength").value;
+
+            if (!lastPeriodValue || !cycleLengthValue) {
+                alert("Please enter your last period date and cycle length!");
+                return;
+            }
+
+            const lastPeriod = new Date(lastPeriodValue);
+            const cycleLength = parseInt(cycleLengthValue);
+            const today = new Date();
+            const diffDays = Math.floor((today - lastPeriod) / (1000 * 60 * 60 * 24));
+            const cycleDay = (diffDays % cycleLength) + 1;
+
+            let phaseKey = (cycleDay <= 5) ? "Menstrual" : 
+                          (cycleDay <= 13) ? "Follicular" : 
+                          (cycleDay <= 16) ? "Ovulation" : "Luteal";
+                          
+            const profile = phaseProfiles[phaseKey];
+
+            document.body.style.backgroundColor = profile.theme;
+            document.getElementById("phaseName").innerHTML = `${profile.emoji} ${phaseKey} Phase <small>(Day ${cycleDay})</small>`;
+            document.getElementById("advice").innerText = profile.advice;
+
+            document.getElementById("energyValue").innerText = `${profile.energy}/10`;
+            document.getElementById("focusValue").innerText = `${profile.focus}/10`;
+            
+            document.getElementById("energyBar").style.width = `${profile.energy * 10}%`;
+            document.getElementById("focusBar").style.width = `${profile.focus * 10}%`;
+            
+            document.getElementById("recommendation").innerHTML = `
+                <div style="background: rgba(214, 51, 132, 0.1); padding: 1rem; border-radius: 10px;">
+                    <strong>✅ Best For:</strong> ${profile.bestCategory}<br>
+                    <strong>❌ Avoid:</strong> ${profile.avoidCategory}
+                </div>
+            `;
+
+            generateForecast(lastPeriod, cycleLength);
+            saveData();
+        }
+
+        function generateForecast(lastPeriod, cycleLength) {
+            const forecastDiv = document.getElementById("forecast");
+            forecastDiv.innerHTML = "";
+            
+            let labels = [];
+            let energyData = [];
+            let focusData = [];
+
+            for (let i = 0; i < 7; i++) {
+                const forecastDate = new Date();
+                forecastDate.setDate(forecastDate.getDate() + i);
+                
+                const diffDays = Math.floor((forecastDate - lastPeriod) / (1000 * 60 * 60 * 24));
+                const cycleDay = (diffDays % cycleLength) + 1;
+                
+                const phaseKey = (cycleDay <= 5) ? "Menstrual" : 
+                               (cycleDay <= 13) ? "Follicular" : 
+                               (cycleDay <= 16) ? "Ovulation" : "Luteal";
+                               
+                const profile = phaseProfiles[phaseKey];
+                
+                labels.push(forecastDate.toLocaleDateString(undefined, {weekday: 'short', day: 'numeric'}));
+                energyData.push(profile.energy);
+                focusData.push(profile.focus);
+
+                forecastDiv.innerHTML += `
+                    <div class="forecast-day">
+                        <div style="font-size: 1.5rem;">${profile.emoji}</div>
+                        <strong>${forecastDate.toDateString().slice(4, 10)}</strong>
+                        <div style="font-size: 0.9rem; margin-top: 0.5rem;">${phaseKey}</div>
+                        <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 0.5rem;">
+                            <div>⚡ ${profile.energy}</div>
+                            <div>🎯 ${profile.focus}</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            createEnergyChart(labels, energyData, focusData);
+        }
+
+        function createEnergyChart(labels, energyData, focusData) {
+            const ctx = document.getElementById("energyChart").getContext("2d");
+            
+            if (energyChart) {
+                energyChart.destroy();
+            }
+            
+            energyChart = new Chart(ctx, {
+                type: "line",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "Energy",
+                            data: energyData,
+                            borderColor: "#d63384",
+                            backgroundColor: "rgba(214, 51, 132, 0.1)",
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: "Focus",
+                            data: focusData,
+                            borderColor: "#6f42c1",
+                            backgroundColor: "rgba(111, 66, 193, 0.1)",
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            min: 0,
+                            max: 10,
+                            ticks: {
+                                stepSize: 2
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    }
+                }
+            });
+        }
+
+        // Task management
+       function addTask() {
+    const text = document.getElementById("newTaskInput").value;
+    const deadline = document.getElementById("taskDeadline").value;
+    const priority = document.getElementById("taskPriority").value;
+    
+    if (!text || !deadline || !priority) {
+        alert("Please fill all fields correctly!");
+        return;
+    }
+
+    tasks.push({
+        id: Date.now(),
+        text,
+        deadline,
+        priority,
+        completed: false,
+        type: "study"
+    });
+
+    renderTasks();
+    saveData();
+
+    document.getElementById("newTaskInput").value = "";
+    document.getElementById("taskDeadline").value = "";
+    document.getElementById("taskPriority").value = "";
+}
+
+      function addWorkTask() {
+    const text = document.getElementById("newWorkTaskInput").value;
+    const deadline = document.getElementById("workTaskDeadline").value;
+    const priority = document.getElementById("workTaskPriority").value;
+    
+    if (!text || !deadline || !priority) {
+        alert("Please fill all fields correctly!");
+        return;
+    }
+
+    workTasks.push({
+        id: Date.now(),
+        text,
+        deadline,
+        priority,
+        completed: false,
+        type: "work"
+    });
+
+    renderWorkTasks();
+    saveData();
+
+    document.getElementById("newWorkTaskInput").value = "";
+    document.getElementById("workTaskDeadline").value = "";
+    document.getElementById("workTaskPriority").value = "";
+}
+
+        function renderTasks() {
+            const list = document.getElementById("taskList");
+            list.innerHTML = "";
+            
+            tasks.forEach((task, index) => {
+                const taskItem = document.createElement("li");
+                taskItem.className = "task-item";
+                taskItem.innerHTML = `
+                    <div class="task-info">
+                        <div class="task-title">${task.text}</div>
+                        <div class="task-meta">
+                          Due: ${task.deadline} | Priority: ${task.priority.toUpperCase()}
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        <button onclick="generatePlan(${index}, 'study')" title="Generate Plan">
+                            <span class="btn-icon">📅</span>
+                        </button>
+                        <button onclick="deleteTask(${index}, 'study')" style="background: var(--danger);" title="Delete">
+                            <span class="btn-icon">❌</span>
+                        </button>
+                    </div>
+                `;
+                list.appendChild(taskItem);
+            });
+        }
+
+       function renderWorkTasks() {
+    const list = document.getElementById("workTaskList");
+    list.innerHTML = "";
+
+    workTasks.forEach((task, index) => {
+        const taskItem = document.createElement("li");
+        taskItem.className = "task-item";
+
+        taskItem.innerHTML = `
+            <div class="task-info">
+                <div class="task-title">${task.text}</div>
+                <div class="task-meta">
+                    Due: ${task.deadline} | Priority: ${task.priority.toUpperCase()}
+                </div>
+            </div>
+            <div class="task-actions">
+                <button onclick="generatePlan(${index}, 'work')" title="Generate Plan">
+                    <span class="btn-icon">📅</span>
+                </button>
+                <button onclick="deleteTask(${index}, 'work')" style="background: var(--danger);" title="Delete">
+                    <span class="btn-icon">❌</span>
+                </button>
+            </div>
+        `;
+        list.appendChild(taskItem);
+    });
+}
+
+        function deleteTask(index, type) {
+            if (type === "study") {
+                tasks.splice(index, 1);
+                renderTasks();
+            } else {
+                workTasks.splice(index, 1);
+                renderWorkTasks();
+            }
+            saveData();
+            generateCalendar(); // Refresh calendar
+        }
+
+        function generatePlan(index, type) {
+    const task = type === "study" ? tasks[index] : workTasks[index];
+
+    const lastPeriodValue = document.getElementById("lastPeriod").value;
+    const cycleLengthValue = document.getElementById("cycleLength").value;
+
+    if (!lastPeriodValue || !cycleLengthValue) {
+        alert("Please set your cycle information first!");
+        return;
+    }
+
+    const lastPeriod = new Date(lastPeriodValue);
+    const cycleLength = parseInt(cycleLengthValue);
+    const deadline = new Date(task.deadline);
+    const today = new Date();
+
+    let currentDate = new Date(today);
+    task.plan = [];
+
+    let workloadFactor = 1;
+    if (task.priority === "high") workloadFactor = 3;
+    if (task.priority === "medium") workloadFactor = 2;
+    if (task.priority === "low") workloadFactor = 1;
+
+    while (currentDate <= deadline) {
+
+        const diffDays = Math.floor((currentDate - lastPeriod) / (1000 * 60 * 60 * 24));
+        const cycleDay = (diffDays % cycleLength) + 1;
+
+        const phaseKey =
+            (cycleDay <= 5) ? "Menstrual" :
+            (cycleDay <= 13) ? "Follicular" :
+            (cycleDay <= 16) ? "Ovulation" :
+            "Luteal";
+
+        const energy = phaseProfiles[phaseKey].energy;
+
+        const priorityLoad = Math.max(1, Math.ceil((energy / 3) * workloadFactor / 3));
+
+        task.plan.push({
+            date: new Date(currentDate),
+            hours: priorityLoad
+        });
+
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+
+    generateCalendar();
+    saveData();
+}
+
+        // Calendar functions
+        function generateCalendar() {
+            const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+];
+
+document.getElementById("monthYearLabel").innerText =
+    `${monthNames[currentMonth]} ${currentYear}`;
+            const calendar = document.getElementById("calendar");
+            calendar.innerHTML = "";
+            
+            const firstDay = new Date(currentYear, currentMonth, 1);
+            const lastDay = new Date(currentYear, currentMonth + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startDay = firstDay.getDay();
+            
+            const today = new Date();
+            
+            // Add empty cells for days before the first day
+            for (let i = 0; i < startDay; i++) {
+                const emptyCell = document.createElement("div");
+                emptyCell.className = "calendar-day";
+                calendar.appendChild(emptyCell);
+            }
+            
+            // Create cells for each day of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement("div");
+                dayCell.className = "calendar-day";
+                
+                // Highlight current day
+                if (day === today.getDate() && 
+                    currentMonth === today.getMonth() && 
+                    currentYear === today.getFullYear()) {
+                    dayCell.classList.add("current");
+                }
+                
+                dayCell.innerHTML = `<div class="day-number">${day}</div>`;
+                dayCell.id = `day-${day}`;
+                
+                // Add task entries for this day
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                
+                // Study tasks
+                tasks.forEach(task => {
+                    if (task.plan) {
+                        task.plan.forEach(planItem => {
+                            const planDateStr = planItem.date.toISOString().split('T')[0];
+                            if (planDateStr === dateStr) {
+                                dayCell.innerHTML += `
+                                    <div class="task-entry study-entry">
+                                        <span>📘</span> ${task.text}: ${planItem.hours}h
+                                    </div>
+                                `;
+                            }
+                        });
+                    }
+                });
+                
+                // Work tasks
+                workTasks.forEach(task => {
+                    if (task.plan) {
+                        task.plan.forEach(planItem => {
+                            const planDateStr = planItem.date.toISOString().split('T')[0];
+                            if (planDateStr === dateStr) {
+                                dayCell.innerHTML += `
+                                    <div class="task-entry work-entry">
+                                        <span>💼</span> ${task.text}: ${planItem.hours}h
+                                    </div>
+                                `;
+                            }
+                        });
+                    }
+                });
+                
+                calendar.appendChild(dayCell);
+            }
+        }
+
+        function prevMonth() {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            generateCalendar();
+        }
+
+        function nextMonth() {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            generateCalendar();
+        }
+
+        // Initialize app when page loads
+      document.addEventListener("DOMContentLoaded", initApp);
+    </script>
+</body>
+</html>
